@@ -112,6 +112,10 @@ let caching_vm_t_assert_agile ~__context (ok_srs, ok_networks) vm vm_t =
   (* Any kind of VUSB means that the VM is not agile. *)
   if vm_t.API.vM_VUSBs <> [] then
     raise Api_errors.(Server_error (vm_has_vusbs, [Ref.string_of vm])) ;
+  (* Any PCI device passed through via other_config:pci means that the VM is
+     not agile: the device is bound to a specific host. *)
+  if Pciops.other_pcidevs_of_vm ~__context vm_t.API.vM_other_config <> [] then
+    raise Api_errors.(Server_error (vm_has_pci_attached, [Ref.string_of vm])) ;
   (* All referenced VDIs should be in shared SRs *)
   let check_vbd ok_srs vbd =
     if Db.VBD.get_empty ~__context ~self:vbd then

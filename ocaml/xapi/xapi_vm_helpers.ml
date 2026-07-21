@@ -467,11 +467,14 @@ let assert_can_see_networks ~__context ~self ~host =
   assert_can_see_named_networks ~__context ~vm:self ~host reqd_nets
 
 (* IOMMU (VT-d) is required iff the VM has any vGPUs which require PCI
- * passthrough. *)
+ * passthrough, or any PCI devices passed through via other_config:pci. *)
 let vm_needs_iommu ~__context ~self =
   List.exists
     (fun vgpu -> Xapi_vgpu.requires_passthrough ~__context ~self:vgpu <> None)
     (Db.VM.get_VGPUs ~__context ~self)
+  || Pciops.other_pcidevs_of_vm ~__context
+       (Db.VM.get_other_config ~__context ~self)
+     <> []
 
 let assert_host_has_iommu ~__context ~host =
   let chipset_info = Db.Host.get_chipset_info ~__context ~self:host in

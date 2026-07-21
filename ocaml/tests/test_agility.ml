@@ -25,4 +25,24 @@ let test_vm_agility_with_vgpu () =
     Api_errors.(Server_error (vm_has_vgpu, [Ref.string_of vm]))
     (fun () -> Agility.vm_assert_agile ~__context ~self:vm)
 
-let test = [("test_vm_agility_with_vgpu", `Quick, test_vm_agility_with_vgpu)]
+let test_vm_agility_with_pci_passthrough () =
+  let __context = make_test_database () in
+  let vm = make_vm ~__context () in
+  (* VM has no VIFs, VBDs, VGPUs or passed-through PCIs, so should be agile. *)
+  Agility.vm_assert_agile ~__context ~self:vm ;
+  (* Pass through a PCI device via other_config:pci - VM should no longer be
+     agile. *)
+  Db.VM.add_to_other_config ~__context ~self:vm ~key:"pci"
+    ~value:"0/0000:01:00.0" ;
+  Alcotest.check_raises "VM should no longer be agile"
+    Api_errors.(Server_error (vm_has_pci_attached, [Ref.string_of vm]))
+    (fun () -> Agility.vm_assert_agile ~__context ~self:vm)
+
+let test =
+  [
+    ("test_vm_agility_with_vgpu", `Quick, test_vm_agility_with_vgpu)
+  ; ( "test_vm_agility_with_pci_passthrough"
+    , `Quick
+    , test_vm_agility_with_pci_passthrough
+    )
+  ]
